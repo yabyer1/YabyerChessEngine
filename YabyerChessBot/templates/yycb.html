@@ -1,0 +1,274 @@
+<html>
+  <head>
+    <title>Yabyer chess engine</title>
+        
+    <!-- JQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- chessjs -->
+    <script src="/static/js/chess.js"></script>
+    
+    <!-- chessboardjs -->
+    <link rel="stylesheet" href="/static/css/chessboard-1.0.0.min.css">
+    <script src="/static/js/chessboard-1.0.0.min.js"></script>
+  </head>
+  <body>
+    <div class="col">
+        <div class="row">
+          <div class="col">
+            <div class="card mt-2">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-5">
+                    <!-- chess board view -->
+                    <div id="chess_board" class="mx-auto mb-2" style="width: 400px;"></div>
+                    
+                    <!-- game controls -->
+                    <div class="row mx-auto mb-2" style="width: 400px;">
+                      <!-- game status -->
+                      <strong class="mx-auto mb-2"><div id="status"></div></strong>
+                      
+                      <!-- FEN -->
+                      <div class="input-group mb-3">
+                        <input id="fen" type="text" class="form-control">
+                        <div class="input-group-append">
+                          <button id="set_fen" class="btn btn-outline-success">Set FEN</button>
+                        </div>
+                      </div>
+                      <!-- Engine Strength-->
+                      <div class="input-group mb-3">
+                        <select id="move_time" class="form-control mr-2">
+                         <option value="0" selected>N/A</option>
+                          <option value="instant">Instant Response</option>
+                          <option value="1">1 sec</option>
+                          <option value="2">2 sec</option>
+                          <option value="3">3 sec</option>
+                          <option value="4">4 sec</option>
+                          <option value="5">5 sec</option>
+                          <option value="6">6 sec</option>
+                          <option value="7">7 sec</option>
+                          <option value="8">8 sec</option>
+                          <option value="9">9 sec</option>
+                          <option value="10">10 sec</option>
+                          <option value="11">11 sec</option>
+                          <option value="12">12 sec</option>
+                        </select>   
+                        <select id="fixed_depth" class="form-control ml-2">
+                          <option value="0" selected>N/A</option>
+                          <option value="1">1 ply</option>
+                          <option value="2">2 ply</option>
+                          <option value="3">3 ply</option>
+                          <option value="4">4 ply</option>
+                          <option value="5">5 ply</option>
+                          <option value="6">6 ply</option>
+                          <option value="7">7 ply</option>
+                          <option value="8">8 ply</option>
+                          <option value="9">9 ply</option>
+                          <option value="10">10 ply</option>
+                          <option value="11">11 ply</option>
+                          <option value="12">12 ply</option>
+                        </select>
+                      </div>
+                      <!-- game info -->
+                      <table class="table text-center">
+                        <thead>
+                          <tr>
+                            <th>Score</th>
+                            <th>Depth</th>
+                            <th>Time</th>
+                            <th>Nodes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong id="score" class="text-danger"></strong></td>
+                            <td id="depth"></td>
+                            <td id="time"></td>
+                            <td id="nodes"></td>
+                            <td id="knps"></td>
+                          <tr>
+                        </tbody>
+                      </table>
+                    
+                      <!-- -buttons -->
+                      <div class="btn-group">
+                        <button id="new_game" class="btn btn-outline-secondary">New game</button>
+                        <button id="make_move" class="btn btn-outline-secondary">Make move</button>
+                        <button id="take_back" class="btn btn-outline-secondary">Take back</button>
+                        <button id="flip_board" class="btn btn-outline-secondary">Flip board</button>
+                      </div>
+                    </div>
+                  </div>
+                
+               
+                  <div class="col">
+                    <div class="col ml-4">
+                        <div class="input-group mt-2 mb-3 d-flex justify-content-center">
+                            <a href="https://yabyer1.github.io/YabyerSites/" class="btn btn-primary">Yabyer Website</a>
+                        </div>
+                    </div>
+                    <!-- PGN output -->
+                    <div class="mt-2 justify-content-center"><strong>PGN:</strong></div>
+                    <div id="pgn"></div>
+                  
+                </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </body>
+  </html>
+  
+
+<script>
+     function make_move(){
+              // make http post request to make move api, use the game.fen() which is chess JS fen, and sin
+    $.post('/make_move',
+    {'fen': game.fen(), 
+    'fixed_depth': $('#fixed_depth option:selected').val(),
+    'move_time': $('#move_time option:selected').val()
+    } ,function(data){
+        //load fen into current board state and update both the chess js and chessboard js fens
+         //game.load(data.fen)
+         game.move(data.best_move, {sloppy: true});
+         board.position(game.fen());
+         //update game ifo
+         $depth.text(data.depth);
+         $score.text(data.score);
+         $time.text(data.time);
+         $nodes.text(data.nodes);
+         updateStatus();
+    });
+     }
+    $('#new_game').on('click', function (){
+        //reset board
+        game.reset();
+        //set initial baord position
+        board.position('start');
+        updateStatus();
+    })
+    $('#make_move').on('click', function (){
+       make_move();
+    })
+    $('#take_back').on('click', function (){
+       game.undo();
+       board.position(game.fen());
+       updateStatus();
+    })
+    $('#flip_board').on('click', function (){
+       board.flip();
+       updateStatus();
+    })
+    $('#move_time').on('change', function(){
+        $('#fixed_depth').val('0');
+    })
+    $('#fixed_depth').on('change', function(){
+        $('#move_time').val('0');
+    })
+    // handle button click
+    $('#set_fen').on('click', function(){
+        game.clear();
+        //set user FEN
+      if  (game.load($('#fen').val()))
+         board.position(game.fen());
+    else
+    alert("illegal FEN");
+       
+    })
+  // NOTE: this example uses the chess.js library:
+  // https://github.com/jhlywa/chess.js
+
+  var board = null
+  var game = new Chess()
+  var $status = $('#status');
+  var $fen = $('#fen');
+  var $pgn = $('#pgn');
+  var $score = $('#score');
+  var $time = $('#time');
+  var $nodes = $('#nodes');
+  var $depth = $('#depth');
+  function onDragStart (source, piece, position, orientation) {
+    // do not pick up pieces if the game is over
+    if (game.game_over()) return false
+
+    // only pick up pieces for the side to move
+    if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+        (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+      return false
+    }
+  }
+
+  function onDrop (source, target) {
+    // see if the move is legal
+    var move = game.move({
+      from: source,
+      to: target,
+      promotion: 'q' // NOTE: always promote to a queen for example simplicity
+    })
+
+    // illegal move
+    if (move === null) return 'snapback'
+    make_move()
+   
+  }
+
+  // update the board position after the piece snap
+  // for castling, en passant, pawn promotion
+  function onSnapEnd () {
+    board.position(game.fen())
+  }
+
+  function updateStatus () {
+    var status = ''
+
+    var moveColor = 'White'
+    if (game.turn() === 'b') {
+      moveColor = 'Black'
+    }
+
+    // checkmate?
+    if (game.in_checkmate()) {
+      status = 'Game over, ' + moveColor + ' is in checkmate.'
+    }
+
+    // draw?
+    else if (game.in_draw()) {
+      status = 'Game over, drawn position'
+    }
+
+    // game still on
+    else {
+      status = moveColor + ' to move'
+
+      // check?
+      if (game.in_check()) {
+        status += ', ' + moveColor + ' is in check'
+      }
+    }
+
+    $status.html(status)
+    $fen.html(game.fen())
+    $pgn.html(game.pgn())
+    
+  }
+
+  var config = {
+    draggable: true,
+    position: 'start',
+    onDragStart: onDragStart,
+    onDrop: onDrop,
+    onSnapEnd: onSnapEnd
+  }
+  board = Chessboard('chess_board', config)
+  $('#chess_board').on('scroll touchmove touchend touchstart contextmenu', function(e){
+    e.preventDefault();
+  })
+  updateStatus()
+</script>
